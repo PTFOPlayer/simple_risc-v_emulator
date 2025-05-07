@@ -15,7 +15,6 @@ fn main() {
         .unwrap_or("./test_asm/risc_test.bin".to_string());
 
     let file = std::fs::read(file_path);
-    println!("{:x?}", file);
     let Ok(data) = file else {
         println!("Error with file");
         exit(-1);
@@ -28,12 +27,12 @@ fn main() {
     loop {
         let instruction = cpu.fetch_instruction(&mem);
         if instruction == 0 {
+            println!("BREAK {}", cpu.dbg_reg(CPU::PC));
             break;
         }
-        cpu.process_instruction(instruction).unwrap();
-        
-        println!("{}, {}", cpu.dbg_reg(2), cpu.dbg_reg(CPU::PC));
+        cpu.process_instruction(instruction);
 
+        println!("{}", cpu.dbg_cpu());
         cpu.increment_pc(4);
     }
 }
