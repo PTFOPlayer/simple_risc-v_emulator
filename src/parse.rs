@@ -15,7 +15,11 @@ pub fn get_rs2(instruction: i32) -> i32 {
 }
 
 pub fn get_funct3(instruction: i32) -> i32 {
-    (instruction >> 12) & 0x3
+    (instruction >> 12) & 0x7
+}
+
+pub fn get_funct7(instruction: i32) -> i32 {
+    ((instruction as u32) >> 25) as i32
 }
 
 pub fn get_u_type_imm(instruction: i32) -> i32 {

@@ -1,8 +1,7 @@
 use crate::{
     mem::Mem,
     parse::{
-        get_funct3, get_i_type_imm, get_i_type_unsinged_imm, get_j_type_imm, get_opcode, get_rd,
-        get_rs1, get_u_type_imm, i64_to_u64,
+        get_funct3, get_funct7, get_i_type_imm, get_i_type_unsinged_imm, get_j_type_imm, get_opcode, get_rd, get_rs1, get_rs2, get_u_type_imm, i64_to_u64, u64_to_i64
     },
 };
 
@@ -34,6 +33,7 @@ impl CPU {
             0b0110111 | 0b0010111 => utype(self, instruction),
             0b0010011 => itype(self, instruction),
             0b1101111 => jtype(self, instruction),
+            0b0110011 => rtype(self, instruction), 
             _ => panic!("unknown instruction"),
         }
     }
@@ -93,7 +93,8 @@ pub fn utype(cpu: &mut CPU, instruction: i32) {
 
 pub fn itype(cpu: &mut CPU, instruction: i32) {
     let funct3 = get_funct3(instruction);
-
+    let funct7 = get_funct7(instruction);
+    
     let imm = get_i_type_imm(instruction);
     let uimm = get_i_type_unsinged_imm(instruction);
     let rd = get_rd(instruction) as usize;
@@ -115,6 +116,39 @@ pub fn itype(cpu: &mut CPU, instruction: i32) {
             let result = (rs1_data < uimm as u64) as i64;
             cpu.set_reg(rd, result);
         }
+        // xori
+        0b100 => {
+            let result = cpu.get_reg(rs1) ^ imm as i64;
+            cpu.set_reg(rd, result);
+
+        }
+        // ori
+        0b110 => {
+            let result = cpu.get_reg(rs1) | imm as i64;
+            cpu.set_reg(rd, result);
+        } 
+        // andi
+        0b111 => {
+            let result = cpu.get_reg(rs1) | imm as i64;
+            cpu.set_reg(rd, result);
+        } 
+        // slli - shift left
+        0b001 => {
+            let rs1_data = i64_to_u64(cpu.get_reg(rs1));
+            let result = rs1_data << (uimm & 0b11111);
+            cpu.set_reg(rd, u64_to_i64(result));
+        }
+        // srli - shift right
+        0b101 if funct7 == 0b0000000 => {
+            let rs1_data = i64_to_u64(cpu.get_reg(rs1));
+            let result = rs1_data >> (uimm & 0b11111);
+            cpu.set_reg(rd, u64_to_i64(result));
+        }
+        // srai - shift right arithmetic.
+        0b101 if funct7 == 0b0100000 => {
+            let result = cpu.get_reg(rs1) >> (uimm & 0b11111);
+            cpu.set_reg(rd, result);
+        }
         _ => panic!("unknown instruction"),
     }
 }
@@ -131,4 +165,28 @@ pub fn jtype(cpu: &mut CPU, instruction: i32) {
         }
         _ => panic!("unknown instruction"),
     }
+}
+
+pub fn rtype(cpu: &mut CPU, instruction: i32) {
+    let func3 = get_funct3(instruction);
+    let func7 = get_funct7(instruction);
+    let rs1 = get_rs1(instruction) as usize;
+    let rs2 = get_rs2(instruction) as usize;
+    let rd = get_rd(instruction) as usize;
+
+    match func3 {
+        // add
+        0b000 if func7 == 0b0000000 => {
+            let result = cpu.get_reg(rs1) as i64 + cpu.get_reg(rs2) as i64;
+            cpu.set_reg(rd, result);
+        }
+        // sub
+        0b000 if func7 == 0b0100000 => {
+            let result = cpu.get_reg(rs1) as i64 - cpu.get_reg(rs2) as i64;
+            cpu.set_reg(rd, result);
+        }
+        _ => panic!("unknown instruction")
+    }
+
+
 }
